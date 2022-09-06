@@ -3,34 +3,31 @@ import json
 import paho.mqtt.client as mqtt
 import rospy
 from geometry_msgs.msg import Twist
+import socket
+ 
 
 
 
 
 
-def turtle_move(cmd):
+
+def turtle_move(x,y):
      
     rospy.init_node('turtlesim', anonymous=True)
-    pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
+    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
     rate = rospy.Rate(10)
     vel = Twist()
-    if cmd == "arr up":
-        vel.linear.x = 0.2
-        print("going up")
-    elif cmd == "arr down":
-        vel.linear.x =-0.2
-        print("going down")
-    elif cmd == "arr left":
-        vel.linear.y =0.2
-        print("going left")
-    elif cmd == "arr right":
-        vel.linear.y =-0.2
-        print("going right")
-    elif cmd == "stop":
+    if x == "stop":
         vel.linear.x =0
         vel.linear.y =0
         vel.linear.z =0
+        vel.angular.x = 0
+        vel.angular.y = 0
+        vel.angular.z = 0
         print("stop")
+    else:
+        vel.linear.x = y
+        vel.angular.z = x
        
     pub.publish(vel)
     rate.sleep()
@@ -54,14 +51,14 @@ def on_message(client, userdata, message):
     cmd = json.loads(str(message.payload.decode("utf-8")))  # decode JSON message
     
     
-    turtle_move(cmd["cmd"])
+    turtle_move(cmd["x"], cmd["y"])
     
 
     
 
-
+IP = socket.gethostbyname(socket.gethostname())
 broker_address = "farlab.infosci.cornell.edu"  # use external broker
-client = mqtt.Client("ROS_Teleop_robot")  # create new instance
+client = mqtt.Client("ROS_Teleop_robot_"+IP)  # create new instance
 client.tls_set()  # set tls for the mqtt connection
 client.on_connect = on_connect  # attach function callback
 client.on_message = on_message  # attach function to callback
@@ -72,8 +69,7 @@ try:
 except:
     print("connection failed")
     exit(1)  # Should quit or raise flag to quit or retry
-print("Subscribing to topic", "teleop")
+print("Subscribing to topic", "teleop_"+IP)
 
-client.subscribe("teleop")  # subscribe to the topic
+client.subscribe("teleop_"+IP)  # subscribe to the topic
 client.loop_forever()  # Start loop
-
